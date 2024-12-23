@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.study.SpringSecurityMybatis.repository.BoardMapper">
+    <resultMap id="boardResultMap" type="com.study.SpringSecurityMybatis.entity.Board" >
+        <id property="id" column="board_id" />
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <result property="userId" column="userId" />
+        <result property="viewCount" column="view_count" />
+        <association property="user" resultMap="userResultMap" />
+    </resultMap>
+    <resultMap id="userResultMap" type="com.study.SpringSecurityMybatis.entity.User" >
+        <id property="id" column="u_user_id" />
+        <result property="username" column="username" />
+    </resultMap>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into board
+        values( default, #{title}, #{content}, #{userId}, default)
+    </insert>
+    <update id="modifyViewCountById">
+        update board
+        set
+            view_count = view_count + 1
+        where
+            id = #{id}
+    </update>
+    <select id="findByUserId" resultType="com.study.SpringSecurityMybatis.entity.Board">
+        select
+            *
+        from
+            board
+        where
+            userId = #{userId}
+    </select>
+    <select id="findById" resultMap="boardResultMap">
+        select
+            b.id as board_id,
+            b.title,
+            b.content,
+            b.userId,
+            b.view_count,
+            u.id as u_user_id,
+            u.username
+        from
+            <!--  userId에 맞는 username을 가져오기 위해 조인을 한다 -> join하면 resultmap을 만들어야 한다 -->
+            board b
+            left outer join user u on(u.id = b.userId)
+        where
+            b.id = #{id}
+    </select>
+    <select id="findAllByStartIndexAndLimit" resultType="com.study.SpringSecurityMybatis.entity.BoardList">
+        <!-- resultMap 안쓰고 만드는 방법 -->
+        with like_count as (
+            select
+                board_id,
+                count(*) as like_cnt
+            from
+                board_like
+            group by
+                board_id
+        )
+
+        select
+            b.id,
+            b.title,
+            b.content,
+            u.img as writerProfileImg,
+            u.username as writerName,
+            ifnull(lc.like_cnt, 0) as likeCount,
+            b.view_count as viewCount
+        from
+            <!-- 보드 아이디가 일치하는 것끼리 조인 -->
+            board b
+            left outer join user u on(u.id = b.userId)
+            left outer join like_count lc on(lc.board_id = b.id)
+        order by
+            b.id asc
+        <!-- 몇번 인덱스부터 몇 개씩 들고올 것인가 -->
+        limit #{startIndex}, #{limit}
+    </select>
+    <select id="getCountAll" resultType="java.lang.Integer">
+        select
+            count(*)
+        from
+            board
+    </select>
+    <select id="findAllBySearch" resultType="com.study.SpringSecurityMybatis.entity.BoardList">
+        with like_count as (
+            select
+                board_id,
+                count(*) as like_cnt
+            from
+                board_like
+            group by
+                board_id
+        )
+
+        select
+            b.id,
+            b.title,
+            b.content,
+            u.img as writerProfileImg,
+            u.username as writerName,
+            ifnull(lc.like_cnt, 0) as likeCount,
+            b.view_count as viewCount
+        from
+        <!-- 보드 아이디가 일치하는 것끼리 조인 -->
+            board b
+            left outer join user u on(u.id = b.userId)
+            left outer join like_count lc on(lc.board_id = b.id)
+        where
+        <!-- 무조건 true가 된다. 조건절이 없을 경우에 대비(searchValue 값이 없는 채로 올 때) -->
+            1 = 1
+            <if test='option.equals("all")'> <!-- myBatis 안에서는 #{}를 안쓴다 -->
+                and(
+                    b.title like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+                    or u.username like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+                )
+            </if>
+            <if test='option.equals("title")'>
+                and b.title like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+            </if>
+            <if test='option.equals("writer")'>
+                and u.username like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+            </if>
+            <!-- myBatis의 elseif문 - choose -->
+<!--            <choose>-->
+<!--                <when test='option.equals("title")'>-->
+<!--                    and b.title like concat('%', #{searchValue}, '%')-->
+<!--                </when>-->
+<!--                <when test='option.equals("writer")'>-->
+<!--                    and u.username like concat('%', #{searchValue}, '%')-->
+<!--                </when>-->
+<!--                <otherwise>-->
+<!--                    and(-->
+<!--                        b.title like concat('%', #{searchValue}, '%')-->
+<!--                        or u.username like concat('%', #{searchValue}, '%')-->
+<!--                    )-->
+<!--                </otherwise>-->
+<!--            </choose>-->
+        order by
+            b.id asc
+        <!-- 몇번 인덱스부터 몇 개씩 들고올 것인가 -->
+        limit #{startIndex}, #{limit}
+    </select>
+    <select id="getCountAllBySearch" resultType="java.lang.Integer">
+        select
+            count(*)
+        from
+            board b
+            left outer join user u on(u.id = b.userId)
+        where
+            1 = 1
+            <!-- option을 null로 요청하면 여기서 문자열로 인식함 - 왜 그런건지는 아직 모름 -->
+            <if test='option.equals("all")'>
+                and(
+                    b.title like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+                    or u.username like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+                )
+            </if>
+            <if test='option.equals("title")'>
+                and b.title like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+            </if>
+            <if test='option.equals("writer")'>
+                and u.username like concat('%', trim(ifnull(#{searchValue}, '')), '%')
+            </if>
+    </select>
+</mapper>

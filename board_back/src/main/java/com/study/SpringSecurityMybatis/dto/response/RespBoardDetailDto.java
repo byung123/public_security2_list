@@ -1,0 +1,18 @@
+package com.study.SpringSecurityMybatis.dto.response;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Builder
+@Data
+public class RespBoardDetailDto {
+    private Long boardId;
+    private String title;
+    private String content;
+    private Long writerId;
+    private String writerUsername;
+    private int viewCount; // 조회수
+//    private int likeCount; // 좋아요 수
+
+    // 해당 userId에 해당하는 username을 들고 와야 한다 -> join해서 들고와야한다 - mapper에서 조인
+}

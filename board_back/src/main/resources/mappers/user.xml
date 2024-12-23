@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.study.SpringSecurityMybatis.repository.UserMapper">
+    <!--    EntityUser를 맵으로 만들겠다-->
+    <!--    -->
+    <resultMap id="userResultMap" type="com.study.SpringSecurityMybatis.entity.User">
+<!--        column: select 햇을 때 결과 comum이름-->
+<!--        property : 해당 userEntity의 변수명-->
+        <id property="id" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="name" column="name"/>
+        <result property="email" column="email"/>
+        <result property="emailValid" column="email_valid" />
+        <result property="img" column="img"/>
+        <collection property="oAuth2Users" javaType="java.util.Set" resultMap="oAuth2UserResultMap" />
+<!--        User Entity 안에 user_roles가 set 자료형으로 돼잇어서 이건 collection으로 해야한다-->
+<!--        result type : 밑에 있는 id 값으로 넣어줌-->
+        <collection property="userRoles" javaType="java.util.Set" resultMap="userRolesResultMap" />
+    </resultMap>
+
+    <resultMap id="oAuth2UserResultMap" type="com.study.SpringSecurityMybatis.entity.OAuth2User">
+        <id property="id" column="oauth2_user_id" />
+        <result property="userId" column="ou_user_id" />
+        <result property="oAuth2Name" column="oauth2_name" />
+        <result property="provider" column="provider" />
+    </resultMap>
+
+    <resultMap id="userRolesResultMap" type="com.study.SpringSecurityMybatis.entity.UserRoles" >
+        <id property="id" column="user_roles_id" />
+        <result property="userId" column="ur_user_id" />
+        <result property="roleId" column="ur_role_id" />
+<!--        바로 밑의 role과 1대1 관계다. -->
+        <association property="role" resultMap="rolesResultMap" />
+    </resultMap>
+
+    <resultMap id="rolesResultMap" type="com.study.SpringSecurityMybatis.entity.Role" >
+        <id property="id" column="role_id" />
+        <result property="name" column="role_name" />
+    </resultMap>
+    <update id="modifyImgById">
+        update user
+        set
+            img = #{img}
+        where
+            id = #{id}
+    </update>
+    <update id="modifyEmailValidByUsername">
+        update user
+        set
+            email_valid = 1
+        where
+            username = #{username}
+    </update>
+    <delete id="deleteById">
+        delete
+        from
+            user
+        where
+            id = #{id}
+    </delete>
+
+    <!--    <select id="findByUsername" resultType="com.study.SpringSecurityMybatis.entity.User">-->
+<!--        select-->
+<!--            id,-->
+<!--            username,-->
+<!--            password,-->
+<!--            name-->
+<!--        from-->
+<!--            user-->
+<!--        where-->
+<!--            username = #{username}-->
+<!--    </select>-->
+    <select id="findByUsername" resultMap="userResultMap">
+        select
+            u.id as user_id,
+            u.username,
+            u.password,
+            u.name,
+            u.email,
+            u.email_valid,
+            u.img,
+            ou.id as oauth2_user_id,
+            ou.user_id as ou_user_id,
+            ou.oauth2_name,
+            ou.provider,
+            ur.id as user_roles_id,
+            ur.user_id as ur_user_id,
+            ur.role_id as ur_role_id,
+            r.id as role_id,
+            r.name as role_name
+        from
+            user u
+            left outer join oauth2_user ou on(ou.user_id = u.id)
+            left outer join user_roles ur on(ur.user_id = u.id)
+            left outer join role r on(r.id = ur.role_id)
+        where
+            u.username = #{username}
+    </select>
+
+    <select id="finByOAuth2Name" resultMap="userResultMap">
+        select
+            u.id as user_id,
+            u.username,
+            u.password,
+            u.name,
+            u.email,
+            u.img,
+            ou.id as oauth2_user_id,
+            ou.user_id as ou_user_id,
+            ou.oauth2_name,
+            ou.provider,
+            ur.id as user_roles_id,
+            ur.user_id as ur_user_id,
+            ur.role_id as ur_role_id,
+            r.id as role_id,
+            r.name as role_name
+        from
+            user u
+            left outer join oauth2_user ou on(ou.user_id = u.id)
+            left outer join user_roles ur on(ur.user_id = u.id)
+            left outer join role r on(r.id = ur.role_id)
+        where
+            u.username = #{username}
+    </select>
+
+    <select id="findById" resultMap="userResultMap">
+        select
+            u.id as user_id,
+            u.username,
+            u.password,
+            u.name,
+            u.email,
+            u.img,
+            u.email_valid,
+            ou.id as oauth2_user_id,
+            ou.user_id as ou_user_id,
+            ou.oauth2_name,
+            ou.provider,
+            ur.id as user_roles_id,
+            ur.user_id as ur_user_id,
+            ur.role_id as ur_role_id,
+            r.id as role_id,
+            r.name as role_name
+        from
+            user u
+        left outer join oauth2_user ou on(ou.user_id = u.id)
+            left outer join user_roles ur on(ur.user_id = u.id)
+            left outer join role r on(r.id = ur.role_id)
+        where
+            u.id = #{id}
+    </select>
+
+    <!--  keyProperty에닥사 방금 autoIncrement된 id값이 keyProperty의 id 라고 한 것에 set되어진다  -->
+    <!--  그럼 UserService에 save(user)하고 난 다음에도 바로 id를 들고 있기 때문에 빌더에서 바로 사용할 수 있다  -->
+    <insert id="save"
+            parameterType="com.study.SpringSecurityMybatis.entity.User"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        insert into user
+        values(default, #{username}, #{password}, #{name}, #{email}, default, #{emailValid})
+    </insert>
+</mapper>

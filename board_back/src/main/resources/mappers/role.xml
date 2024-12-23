@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.study.SpringSecurityMybatis.repository.RoleMapper">
+    <select id="findByName"
+            resultType="com.study.SpringSecurityMybatis.entity.Role">
+        select
+            id,
+            name
+        from
+            role
+        where
+            name = #{name}
+    </select>
+
+    <select id="findById"
+            resultType="com.study.SpringSecurityMybatis.entity.Role">
+        select
+            id,
+            name
+        from
+            role
+        where
+            id = #{id}
+    </select>
+
+    <!--  keyProperty에닥사 방금 autoIncrement된 id값이 keyProperty의 id 라고 한 것에 set되어진다  -->
+    <!--  그럼 UserService에 save(user)하고 난 다음에도 바로 id를 들고 있기 때문에 빌더에서 바로 사용할 수 있다  -->
+    <!--  save에다가는 웬만하면 다 붙여놓는게 편하다  -->
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into role
+        values(default, #{name})
+    </insert>
+</mapper>
